@@ -17,3 +17,22 @@ const client = await getElternportalClient({
 const letters = await client.getElternbriefe();
 console.log(letters);
 ```
+
+# Python extension from NiklasWyld
+
+## Usage
+```py
+from api import ElternPortalApiClient, ElternPortalApiClientConfig
+
+
+config = ElternPortalApiClientConfig(
+    short="heraugy",
+    username="",
+    password=""
+)
+
+client = ElternPortalApiClient(config)
+client.init()
+
+print(client.get_kids()[0].name)
+````
