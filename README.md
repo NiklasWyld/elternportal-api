@@ -36,3 +36,31 @@ client.init()
 
 print(client.get_kids()[0].name)
 ````
+# client.get_stundenplan() Bugfix: + Restart() 
+
+## Usage
+```py
+from api import ElternPortalApiClient, ElternPortalApiClientConfig
+
+config = ElternPortalApiClientConfig(
+    short="heraugy",
+    username="",
+    password=""
+)
+
+client = ElternPortalApiClient(config)
+client.init()
+
+k = client.get_kids()[1]
+print(k.name)
+print(k.id)
+print()
+
+
+client.restart()
+for x in client.get_stundenplan():
+    print()
+    for y in x:
+        print(y.fach,y.raum)
+````
+
