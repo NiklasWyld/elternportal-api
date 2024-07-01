@@ -9,6 +9,12 @@ class Kid:
         self.name = name
         self.id = id
 
+class Stunde:
+    def __init__(self, fach,raum, lehrerKuerzel):
+        self.fach = fach
+        self.raum = raum
+        self.lehrerKuerzel = lehrerKuerzel
+
 class SchoolInfo:
     def __init__(self, key, value):
         self.key = key
@@ -47,10 +53,18 @@ class ElternPortalApiClient:
             }
         )
         soup = BeautifulSoup(response.text, 'html.parser')
-        kid_name = soup.select_one('.pupil-selector select option').text.strip()
-        kid_id = int(soup.select_one('.pupil-selector select option')['value'])
-        return [Kid(name=kid_name, id=kid_id)]
+        kid_name = soup.select('.pupil-selector select option')#.text.strip()
+        kid_id = soup.select('.pupil-selector select option')#['value'])
+        kids = []
+        for i in range(len(kid_name)):
+            kid = Kid(name=kid_name[i].text.strip(), id=int(kid_id[i]['value']))
+            kids.append(kid)
+        return kids
 
+
+    def get_vertretungsplan(self):
+        return 0
+    
     def get_school_infos(self):
         response = self.client.post(
             f"https://{self.short}.eltern-portal.org/includes/project/auth/login.php",
@@ -122,24 +136,28 @@ class ElternPortalApiClient:
             }
         )
         soup = BeautifulSoup(response.text, 'html.parser')
-        cells = soup.select("#asam_content > div > table > tbody tr td")
-        rows = []
+        cells = soup.select("#asam_content > div > table > tr td")
         std = 0
-        for cell in cells:
+        tag =0
+        tage= [[Stunde("",0,"") for x in range(3)] for y in range(5)] 
+        for cell in cells[6:]:
             cell_html = cell.decode_contents()
-            if 'width="15%"' in cell_html:
-                arr1 = cell_html.split('<br>')
-                value = int(re.findall(r'\d+', arr1[0])[0])
-                std = value
-                detail = arr1[1].split('<')[0].replace('.', ':')
-                rows.append({"type": "info", "value": value, "detail": detail, "std": std})
-            else:
-                arr1 = cell_html.split('<br>')
-                value = re.findall(r'>(.*?)<', arr1[0])[0]
-                detail = arr1[1].split('</span>')[0]
-                rows.append({"type": "class", "value": value, "detail": detail, "std": std})
-        rows = [r for r in rows if r['std'] is not None]
-        return rows
+            arr1 = cell_html.split('<br>')
+            try:
+                if not 'width="15%"' in str(cell):
+                    tag+=1
+                    fach = arr1[0].split('>')[1]
+                    raum = arr1[1].split('<')[0]
+                    if std < 4:
+                        tage[tag-1][std-1]=(Stunde(fach=fach,raum=raum,lehrerKuerzel=''))
+                    elif fach!="":
+                        tage[tag-1].append(Stunde(fach=fach,raum=raum,lehrerKuerzel=''))
+                else:
+                    std+=1
+                    tag =0
+            except:
+                pass
+        return tage
 
     def get_fundsachen(self):
         response = self.client.post(
@@ -211,6 +229,12 @@ class ElternPortalApiClient:
         # with open("./out.pdf", 'wb') as f:
         #     f.write(res.content)
         return {}
+    def logout(self):
+        self.client.get(f"https://{self.short}.eltern-portal.org/logout")
+        
+    def restart(self):
+        self.logout()
+        self.init()
 
 async def get_elternportal_client(config: ElternPortalApiClientConfig):
     client = ElternPortalApiClient(config)
