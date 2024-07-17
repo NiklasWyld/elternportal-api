@@ -49,6 +49,35 @@ class ElternPortalApiClient {
     const parsedCSRFToken = $(`[name='csrf']`).val() as string;
     this.csrf = parsedCSRFToken;
   }
+  async prove_auth(): Promise<boolean> {
+    try {
+      const { data } = await this.client.request({
+        method: "POST",
+        url: `https://${this.short}.eltern-portal.org/includes/project/auth/login.php`,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        data: {
+          csrf: this.csrf,
+          username: this.username,
+          password: this.password,
+          go_to: "",
+        },
+      });
+
+      const $ = cheerioLoad(data);
+      const kids = $(`.pupil-selector select option`).length;
+      
+      if (kids > 0) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error("Authentication failed:", error);
+      return false;
+    }
+  }
   async getKids(): Promise<Kid[]> {
     const { data } = await this.client.request({
       method: "POST",
@@ -343,95 +372,107 @@ const PORT = process.env.PORT || 3000;
 app.get('/auth', async (req, res) => {
   try {
     const { short, username, password } = req.query;
-    const config = { short, username, password };
+    const config = { short, username, password } as ElternPortalApiClientConfig;
     const client = await getElternportalClient(config);
     res.status(200).send({ message: 'Client initialized successfully', csrf: client.csrf });
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    res.status(500).send({ error: (error as any).message });
   }
 });
+
+app.get('/get_auth', async (req, res) => {
+  try {
+    const {short, username, password} = req.query;
+    const config = { short, username, password } as ElternPortalApiClientConfig;
+    const client = await getElternportalClient(config);
+    const auth_status = await client.prove_auth();
+    res.status(200).send(auth_status);
+  } catch (error) {
+    res.status(500).send({ error: (error as any).message });
+  }
+})
 
 app.get('/kids', async (req, res) => {
   try {
     const { short, username, password } = req.query;
-    const config = { short, username, password };
+    const config = { short, username, password } as ElternPortalApiClientConfig;
     const client = await getElternportalClient(config);
     const kids = await client.getKids();
     res.status(200).send(kids);
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    res.status(500).send({ error: (error as any).message });
   }
 });
 
 app.get('/schoolinfos', async (req, res) => {
   try {
     const { short, username, password } = req.query;
-    const config = { short, username, password };
+    const config = { short, username, password } as ElternPortalApiClientConfig;
     const client = await getElternportalClient(config);
     const schoolInfos = await client.getSchoolInfos();
     res.status(200).send(schoolInfos);
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    res.status(500).send({ error: (error as any).message });
   }
 });
 
 app.get('/termine', async (req, res) => {
   try {
     const { short, username, password, from, to } = req.query;
-    const config = { short, username, password };
+    const config = { short, username, password } as ElternPortalApiClientConfig;
     const client = await getElternportalClient(config);
-    const termine = await client.getTermine(from, to);
+    const termine = await client.getTermine(Number(from), Number(to));
     res.status(200).send(termine);
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    res.status(500).send({ error: (error as any).message });
   }
 });
 
 app.get('/stundenplan', async (req, res) => {
   try {
     const { short, username, password } = req.query;
-    const config = { short, username, password };
+    const config = { short, username, password } as ElternPortalApiClientConfig;
     const client = await getElternportalClient(config);
     const stundenplan = await client.getStundenplan();
     res.status(200).send(stundenplan);
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    res.status(500).send({ error: (error as any).message });
   }
 });
 
 app.get('/fundsachen', async (req, res) => {
   try {
     const { short, username, password } = req.query;
-    const config = { short, username, password };
+    const config = { short, username, password } as ElternPortalApiClientConfig;
     const client = await getElternportalClient(config);
     const fundsachen = await client.getFundsachen();
     res.status(200).send(fundsachen);
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    res.status(500).send({ error: (error as any).message });
   }
 });
 
 app.get('/elternbriefe', async (req, res) => {
   try {
     const { short, username, password } = req.query;
-    const config = { short, username, password };
+    const config = { short, username, password } as ElternPortalApiClientConfig;
     const client = await getElternportalClient(config);
     const elternbriefe = await client.getElternbriefe();
     res.status(200).send(elternbriefe);
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    res.status(500).send({ error: (error as any).message });
   }
 });
 
 app.get('/file', async (req, res) => {
   try {
     const { short, username, password, file } = req.query;
-    const config = { short, username, password };
+    const config = { short, username, password } as ElternPortalApiClientConfig;
     const client = await getElternportalClient(config);
-    const fileData = await client.getFile(file);
+    const fileData = await client.getFile(String(file));
     res.status(200).send(fileData);
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    res.status(500).send({ error: (error as any).message });
   }
 });
 
